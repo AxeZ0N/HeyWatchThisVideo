@@ -105,6 +105,7 @@ class Pauser:
         og_win = run(self.get_active_window)
         media_win = run(self.get_media_window(self.MEDIA_NAMES))
         run("xdotool mousemove_relative 1 1")
+
         run(self.mouse_move(int(media_win.stdout)) + self.pause)
         run("xdotool mousemove_relative 1 1")
 
@@ -142,9 +143,7 @@ class Player:
 
     def erase_folder(self, folder):
         """Helpful method"""
-        path = os.path.abspath(".")
-        change_dir = f'cd "{path}"; '
-        run(change_dir + f"rm -rf ./{folder}/*")
+        run(f"./{folder}/*")
 
     @staticmethod
     def autoplay(player, pauser, downloader):
@@ -164,6 +163,7 @@ class Player:
                 if dl_failed and failed_dl_counter < 4:
                     failed_dl_counter += 1
                     continue
+
                 player.erase_files(player.TO_DL)
                 failed_dl_counter = 0
 
@@ -188,12 +188,8 @@ class Downloader:
 
     def run_ytdlp(self):
         """Builds and runs the command line call"""
-        path = os.path.abspath(".")
-        change_dir = f'cd "{path}"; '
-
         cmd = (
-            change_dir
-            + self.base_opts
+            self.base_opts
             + self.playlist
             + self.output_tmpl
             + self.dl_list
@@ -204,17 +200,19 @@ class Downloader:
         return output
 
 
+play = Player()
+pause = Pauser()
+download = Downloader()
+
 watcher = Watcher()
 watcher.build_watcher(watcher.CHANNEL_ID, watcher.my_filter, watcher.my_callback)
 watcher_d = threading.Thread(
     name="Watcher",
     target=watcher.watch,
 )
-watcher_d.start()
 
-play = Player()
-pause = Pauser()
-download = Downloader()
+print("Started watcher.d")
+watcher_d.start()
 
 try:
     print("Started autoplay!")
