@@ -1,135 +1,224 @@
-import discord, os, mpv, time, threading, subprocess
+import os
 from os.path import isdir as is_locked
 from os import mkdir as lock, rmdir as unlock
+import time
+import threading
+import subprocess
+import discord
+
 
 def run(*args, **kwargs):
-    return subprocess.run(
-            *args,
-            **kwargs,
-            capture_output = True,
-            shell = True
-            )
+    """Wrapper for subprocess.run with the args I want"""
+    return subprocess.run(*args, **kwargs, capture_output=True, shell=True, check=False)
 
-class AlreadyRunningException(Exception): pass
-class NoneTokenException(Exception): pass
+
+class AlreadyRunningException(Exception):
+    """Watcher daemon lockfile .watcher found"""
+
+    pass
+
+
+class NoneTokenException(Exception):
+    """Discord login token not found in env"""
+
+    pass
+
 
 class Watcher:
-    ''' Responsible for the daemon watching my DMs '''
+    """Responsible for the daemon watching my DMs"""
 
-    TO_DL = '.to_download'
-    LOCKFILE = '.watcher'
-    CHANNEL_ID = 828429968567435264 # My DMs with Aleah
-    DOMAINS = ['tiktok', 'instagram',]
-    TOKEN = os.environ.get('DISCORD_TOKEN', None)
+    TO_DL = ".to_download"
+    LOCKFILE = ".watcher"
+    CHANNEL_ID = 828429968567435264  # My DMs with Aleah
+    DOMAINS = [
+        "tiktok",
+        "instagram",
+    ]
+    TOKEN = os.environ.get("DISCORD_TOKEN", None)
 
     def __init__(self):
-        if is_locked(self.LOCKFILE): raise AlreadyRunningException
+        if is_locked(self.LOCKFILE):
+            raise AlreadyRunningException
 
-        self.token = os.environ.get('DISCORD_TOKEN', None)
-        if self.token is None: raise NoneTokenException
+        self.token = os.environ.get("DISCORD_TOKEN", None)
+        if self.token is None:
+            raise NoneTokenException
 
         lock(self.LOCKFILE)
         self.client = discord.Client()
 
-    def build_watcher(self, channel, filter, callback):
+    def build_watcher(self, channel, my_filter, my_callback):
+        """Provide channel to watch, filter function, and callback function"""
+
         @self.client.event
         async def on_message(message):
-            if message.channel.id != channel: return
+            if message.channel.id != channel:
+                return
 
             content = message.content
-            if filter(content): 
-                print(f'Hey watch this video!')
-                callback(content)
+            if my_filter(content):
+                print("Hey watch this video!")
+                my_callback(content)
 
         return on_message
 
     def watch(self):
+        """Begin the daemon"""
         print("Started watching!")
-        try: self.client.run(self.token)
-        except (discord.LoginFailure, KeyboardInterrupt) as e: raise e
-        finally: unlock(self.LOCKFILE)
+        try:
+            self.client.run(self.token)
+        finally:
+            unlock(self.LOCKFILE)
 
     @staticmethod
-    def callback(msg):
-        with open(Watcher.TO_DL, 'a') as f:
-            f.write(msg + '\n')
+    def my_callback(msg):
+        """Feel free to change or add another"""
+        with open(Watcher.TO_DL, "a", encoding="UTF-8") as f:
+            f.write(msg + "\n")
 
     @staticmethod
-    def filter(msg):
-        return any([(d in msg) for d in Watcher.DOMAINS])
+    def my_filter(msg):
+        """Feel free to change or add another"""
+        return any(((d in msg) for d in Watcher.DOMAINS))
 
-class Pause:
-    MEDIA_NAMES =  "Hulu|Netflix|Plex|YouTube|Spotify"
-    get_active_window = f'xdotool getactivewindow '
-    get_media_window = lambda _,names: f'xdotool search --name --sync --limit 1 \"{names}\" '
-    mouse_move = lambda _,win: f'xdotool mousemove --sync --polar --window {win} 0 0 windowactivate --sync {win} '
-    pause = 'key space'
 
-    def xdotool_pause(self, reset_win = None):
+class Pauser:
+    """Requires xdotool (and an x11-ish desktop)"""
+
+    MEDIA_NAMES = "Hulu|Netflix|Plex|YouTube|Spotify"
+    get_active_window = "xdotool getactivewindow "
+    pause = "key space"
+
+    def get_media_window(self, names):
+        """xdotool wrapper, searches for MEDIA_NAMES"""
+        return f'xdotool search --name --sync --limit 1 "{names}" '
+
+    def mouse_move(self, win):
+        """xdotool wrapper, activates and puts mouse in center of WIN"""
+        return f"xdotool mousemove --sync --polar --window {win} 0 0 windowactivate --sync {win} "
+
+    def xdotool_pause(self, reset_win=None):
+        """
+        If reset_win is None, return the original window id,
+        Else, treat reset_win as a window id and reactivate and move mouse there
+        """
         og_win = run(self.get_active_window)
         media_win = run(self.get_media_window(self.MEDIA_NAMES))
+        run("xdotool mousemove_relative 1 1")
         run(self.mouse_move(int(media_win.stdout)) + self.pause)
-        run('xdotool mousemove_relative 1 1')
+        run("xdotool mousemove_relative 1 1")
 
-        if reset_win is None: return int(og_win.stdout)
+        if reset_win is None:
+            return int(og_win.stdout)
         return run(self.mouse_move(reset_win))
 
+
 class Player:
-    TO_DL = '.to_download'
-    TO_PLAY = '.playlist'
+    """Requires MPV (and a bash-ish terminal)"""
+
+    TO_DL = ".to_download"
+    TO_PLAY = ".playlist"
 
     def play(self):
-        cmd = 'mpv --playlist=.playlist --volume=90 --keep-open=no --loop=no --screen=2 '
+        """Builds and runs the mpv command in terminal"""
+        cmd = (
+            "mpv --playlist=.playlist --volume=90 --keep-open=no --loop=no --screen=2 "
+        )
         output = run(cmd)
         return output
+
+    def download(self, downloader):
+        """Helpful method"""
+        out = downloader.run_ytdlp()
+        if out.stderr:
+            print(out.stderr.decode())
+            return 1
+        return 0
+
+    def erase_files(self, file):
+        """Helpful method"""
+        with open(file, "w", encoding="UTF-8"):
+            pass
+
+    def erase_folder(self, folder):
+        """Helpful method"""
+        path = os.path.abspath(".")
+        change_dir = f'cd "{path}"; '
+        run(change_dir + f"rm -rf ./{folder}/*")
 
     @staticmethod
     def autoplay(player, pauser, downloader):
-        while True:
-            if os.stat(player.TO_DL).st_size:
-                print(f'Grabbing video...')
-                downloader.run_ytdlp()
-                with open(player.TO_DL,'w'): pass
+        """start autoplay, retries failed downloads 4 times, then aborts entire batch"""
 
-            if os.stat(player.TO_PLAY).st_size: 
-                print(f'Playing video!')
-                old_win = pauser.xdotool_pause()
-                player.play()
-                pauser.xdotool_pause(old_win)
-                with open(player.TO_PLAY,'w'): pass
+        def _play():
+            old_win = pauser.xdotool_pause()
+            player.play()
+            pauser.xdotool_pause(old_win)
+
+        failed_dl_counter = 0
+
+        while True:
+            if os.path.getsize(player.TO_DL):
+                print("Grabbing video...")
+                dl_failed = player.download(downloader)
+                if dl_failed and failed_dl_counter < 4:
+                    failed_dl_counter += 1
+                    continue
+                player.erase_files(player.TO_DL)
+                failed_dl_counter = 0
+
+            if os.path.getsize(player.TO_PLAY):
+                print("Playing video!")
+                _play()
+
+                player.erase_files(player.TO_PLAY)
+                player.erase_folder(".vids")
 
             time.sleep(1)
 
+
 class Downloader:
-    base_opts =   './venv/bin/python3 -m yt_dlp --restrict-filenames '
-    playlist =    f'--print-to-file after_move:filepath \"../{Player.TO_PLAY}\" '
-    output_tmpl = '-o \"%(description.0:100)s.%(ext)s\" '
-    dl_list =     f'--batch-file \"{Player.TO_DL}\" '
-    output_dir =  '--paths \".vids\" '
+    """Uses pip installed python3 yt-dlp from command line to batch download any videos"""
+
+    base_opts = "./venv/bin/python3 -m yt_dlp --restrict-filenames "
+    playlist = f'--print-to-file after_move:filepath "../{Player.TO_PLAY}" '
+    output_tmpl = '-o "%(description.0:100)s.%(ext)s" '
+    dl_list = f'--batch-file "{Player.TO_DL}" '
+    output_dir = '--paths ".vids" '
 
     def run_ytdlp(self):
-        path = os.path.abspath('.')
-        change_dir = f'cd \"{path}\"; '
+        """Builds and runs the command line call"""
+        path = os.path.abspath(".")
+        change_dir = f'cd "{path}"; '
 
-        cmd = change_dir + self.base_opts + self.playlist +\
-                self.output_tmpl + self.dl_list + self.output_dir
+        cmd = (
+            change_dir
+            + self.base_opts
+            + self.playlist
+            + self.output_tmpl
+            + self.dl_list
+            + self.output_dir
+        )
 
         output = run(cmd)
         return output
 
 
-pauser = Pause()
-player = Player()
-downloader = Downloader()
-
 watcher = Watcher()
-watcher.build_watcher(watcher.CHANNEL_ID, watcher.filter, watcher.callback)
-watcher_d = threading.Thread(name='Watcher',target=watcher.watch,)
+watcher.build_watcher(watcher.CHANNEL_ID, watcher.my_filter, watcher.my_callback)
+watcher_d = threading.Thread(
+    name="Watcher",
+    target=watcher.watch,
+)
 watcher_d.start()
 
+play = Player()
+pause = Pauser()
+download = Downloader()
+
 try:
-    print(f'Started autoplay!')
-    player.autoplay(player, pauser, downloader)
+    print("Started autoplay!")
+    play.autoplay(play, pause, download)
     watcher_d.join()
-except (KeyboardInterrupt, Exception) as e: raise(e)
-finally: unlock(watcher.LOCKFILE)
+finally:
+    unlock(watcher.LOCKFILE)
