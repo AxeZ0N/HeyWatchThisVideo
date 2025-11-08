@@ -69,6 +69,7 @@ class Pause:
         og_win = run(self.get_active_window)
         media_win = run(self.get_media_window(self.MEDIA_NAMES))
         run(self.mouse_move(int(media_win.stdout)) + self.pause)
+        run('xdotool mousemove_relative 1 1')
 
         if reset_win is None: return int(og_win.stdout)
         return run(self.mouse_move(reset_win))
