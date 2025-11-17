@@ -5,11 +5,14 @@ import sys
 import signal
 import discord
 
+
 def kill(sig, frame):
     os.rmdir(LOCKFILE)
     sys._exit(1)
 
+
 signal.signal(signal.SIGINT, kill)
+
 
 def start_watching(filter_fcn, callback, channel_id, lockfile):
     """Monitor a channel using filter_fcn, then run callback"""

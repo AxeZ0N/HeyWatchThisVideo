@@ -4,6 +4,9 @@
 
 venv/bin/python3 -m pip install -U --pre "yt-dlp[default]"
 
+mkdir /tmp/.vids
+touch /tmp/.to_download /tmp/.to_play
+
 venv/bin/python3 watcher.py &
 PID=$!
 

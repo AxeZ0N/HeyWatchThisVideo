@@ -21,9 +21,10 @@ def download(dlfile, vidsdir):
     )
 
     ret = run_(ytdl_cmd)
-    print('Downloading video!')
+    print("Downloading video!")
 
-    with open(dlfile,'w',encoding="UTF-8"): pass
+    with open(dlfile, "w", encoding="UTF-8"):
+        pass
 
 
 DLFILE = "/tmp/.to_download"
