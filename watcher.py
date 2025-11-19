@@ -8,7 +8,7 @@ import discord
 
 def kill(sig, frame):
     os.rmdir(LOCKFILE)
-    sys._exit(1)
+    sys.exit(1)
 
 
 signal.signal(signal.SIGINT, kill)
@@ -32,12 +32,8 @@ def start_watching(filter_fcn, callback, channel_id, lockfile):
 
     print("Locked daemon")
     os.mkdir(lockfile)
-    try:
-        print("Started watching")
-        client.run(token)
-
-    finally:
-        os.rmdir(lockfile)
+    print("Started watching")
+    client.run(token)
 
 
 LOCKFILE = "/tmp/.WATCHER"

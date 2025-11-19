@@ -12,6 +12,7 @@ def run_(*args, **kwargs):
 def download(dlfile, vidsdir):
     """Downloads vids and cleans up"""
     if not os.path.getsize(DLFILE):
+        # print("Nothing to DL!")
         return
 
     ytdl_cmd = (
@@ -21,6 +22,7 @@ def download(dlfile, vidsdir):
     )
 
     ret = run_(ytdl_cmd)
+    print(ret)
     print("Downloading video!")
 
     with open(dlfile, "w", encoding="UTF-8"):

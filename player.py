@@ -14,30 +14,24 @@ def run_(*args, **kwargs):
 def play(vids_dir):
     """Plays videos in dir, then cleans up"""
     if not os.listdir(vids_dir):
+        # print("Nothing to play!")
         return
 
-    media_windows = "Hulu|Netflix|YouTube|Spotify|mpv"
-    plex_only_window = "Plex"
+    media_windows = "Hulu|Netflix|YouTube|Spotify|mpv|Plex"
 
     mouse_move_cmd = (
-        "mousemove --sync --polar --window %1 0 0 "
-        + "mousemove_relative --sync 1 1 key space"
-    )
-
-    pause_cmd = (
-        f"xdotool search --sync --name --onlyvisible '{media_windows}' "
-        + "windowactivate --sync %1 "
-        + mouse_move_cmd
-    )
-
-    plex_only_cmd = (
-        f"xdotool search --name --onlyvisible '{plex_only_window}' "
+        "mousemove --polar --window %1 0 0 "
         + "windowactivate %1 "
-        + mouse_move_cmd
+        + "mousemove_relative 1 1 key space"
     )
 
-    run_(plex_only_cmd)
-    run_(pause_cmd)
+    def pause_all():
+        for app in media_windows.split(sep="|"):
+            pause_cmd = f"xdotool search --name --onlyvisible '{app}' "
+
+            run_(pause_cmd + mouse_move_cmd)
+
+    pause_all()
 
     fnames = [f"{vids_dir}/" + fname for fname in os.listdir(vids_dir)]
 
@@ -46,16 +40,13 @@ def play(vids_dir):
         duration = re.findall(r"(Duration: \d.*?),", meta_data)
         print(duration)
 
-        mpv_cmd = (
-            f"mpv --volume=90 --keep-open=no --loop=no --screen=2 --start=0% '{fn}'"
-        )
+        mpv_cmd = f"mpv --volume=90 --keep-open=no --loop=no --start=0% --screen=1 '{fn}'"
 
         run_(mpv_cmd)
 
     sleep(0.3)
-    run_(plex_only_cmd)
-    run_(pause_cmd + " alt+Tab")
-    run_("xdotool keyup alt+Tab")
+    pause_all()
+    run_("xdotool keydown alt+Tab keyup alt+Tab")
 
     for file in fnames:
         ret = run_(f"rm '{file}'")
