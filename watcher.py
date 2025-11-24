@@ -3,10 +3,21 @@
 import os
 import sys
 import signal
+
+from time import time
+from subprocess import run
+
 import discord
 
 
-def kill(sig, frame):
+def run_(*args, **kwargs):
+    """Override"""
+    return run(*args, shell=True, check=False, capture_output=True, **kwargs)
+
+
+def kill(*_args):
+    """Ensure lock is released on exit"""
+    print("Stopping watcher\nUnlocking...")
     os.rmdir(LOCKFILE)
     sys.exit(1)
 
@@ -37,7 +48,7 @@ def start_watching(filter_fcn, callback, channel_id, lockfile):
 
 
 LOCKFILE = "/tmp/.WATCHER"
-DLFILE = "/tmp/.to_download"
+DLDIR = "/tmp/.to_download"
 
 DOMAINS = [
     "tiktok",
@@ -46,12 +57,17 @@ DOMAINS = [
     "youtu.be",
 ]
 
+
 watch_args = {
     "filter_fcn": lambda msg: any(d in msg for d in DOMAINS),
-    "callback": lambda msg: open(DLFILE, "w+", encoding="UTF-8").write(msg + "\n"),
+    # "callback": lambda msg: open(DLFILE, "w+", encoding="UTF-8").write(msg + "\n"),
+    "callback": lambda msg: run_(f'echo "{msg}" > {DLDIR}/{time()}'),
     "channel_id": 828429968567435264,
     "lockfile": LOCKFILE,
 }
 
 if __name__ == "__main__":
-    start_watching(**watch_args)
+    try:
+        start_watching(**watch_args)
+    finally:
+        kill()
