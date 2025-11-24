@@ -27,7 +27,7 @@ def download(dldir, vidsdir):
             # + "--no-config "
             # + "--cookies-from-browser firefox "
             # + "-vU " # Caution! Prints to stderr -> will always raise ValueError
-            + f"--paths {vidsdir} "
+            + f'-P "home:{vidsdir}" -P "temp:/tmp" '
             # + "--simulate "
             + " ".join(url)
         )
