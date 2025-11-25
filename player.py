@@ -43,10 +43,19 @@ def play(vids_dir):
         print(duration)
 
         mpv_cmd = (
-            f"mpv --volume=90 --keep-open=no --loop=no --start=0% --screen=1 '{fn}'"
+            f"mpv "
+            + "--volume=90 "
+            + "--af=lavfi=[dynaudnorm=f=75:g=25:p=0.55] "
+            + "--keep-open=no "
+            + "--loop=no "
+            + "--start=0% "
+            + "--screen=1 "
+            + f"'{fn}' "
         )
 
         run_(mpv_cmd)
+        #ret = run_(mpv_cmd)
+        #print(ret)
 
     sleep(0.3)
     pause_all()
