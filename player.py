@@ -13,6 +13,7 @@ def run_(*args, **kwargs):
 
 def play(vids_dir):
     """Plays videos in dir, then cleans up"""
+    #print(os.listdir(vids_dir))
     if not os.listdir(vids_dir):
         # print("Nothing to play!")
         return
@@ -38,6 +39,7 @@ def play(vids_dir):
     fnames = [f"{vids_dir}/" + fname for fname in os.listdir(vids_dir)]
 
     for fn in fnames:
+        if fn.endswith(('vtt', 'srt')): continue
         meta_data = run_(f"ffprobe '{fn}'").stderr.decode().strip()
         duration = re.findall(r"(Duration: \d.*?),", meta_data)
         print(duration)
@@ -50,12 +52,12 @@ def play(vids_dir):
             + "--loop=no "
             + "--start=0% "
             + "--screen=1 "
-            + f"'{fn}' "
+            + f"'{fn}'"
         )
 
-        run_(mpv_cmd)
-        #ret = run_(mpv_cmd)
-        #print(ret)
+        #run_(mpv_cmd)
+        ret = run_(mpv_cmd)
+        print(ret)
 
     sleep(0.3)
     pause_all()
@@ -63,7 +65,8 @@ def play(vids_dir):
 
     for file in fnames:
         # ret = run_(f"rm '{file}'")
-        run_(f"rm '{file}'")
+        ret = run_(f"rm '{file}'")
+        print(ret)
 
 
 VIDS_DIR = "/tmp/.vids"

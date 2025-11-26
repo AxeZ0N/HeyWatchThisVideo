@@ -16,6 +16,9 @@ def download(dldir, vidsdir):
     Download and clean up each of these files on every invocation
     """
     for filename in os.listdir(dldir):
+
+
+        print('foobar')
         full_path = f"{dldir}/{filename}"
 
         with open(full_path, "r", encoding="UTF-8") as f:
@@ -33,7 +36,9 @@ def download(dldir, vidsdir):
         )
 
         print("\nDownloading!")
+        print(ytdl_cmd)
         ret = run_(ytdl_cmd)
+        print(ret)
 
         print("\nSTDOUT: ")
         [print(x) for x in ret.stdout.decode().split(sep="\n")]  # pylint: disable=W0106
