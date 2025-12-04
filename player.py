@@ -20,21 +20,12 @@ def play(vids_dir):
 
     media_windows = "Hulu|Netflix|YouTube|Spotify|mpv|Plex"
 
-    mouse_move_cmd = (
-        "mousemove --polar --window %@ 0 0 "
-        + "windowactivate --sync %@ "
-        + "key space mousemove_relative 1 1 "
-    )
+    def pause():
+        for x in media_windows.split(sep='|'):
+            ret = run_(f"xdotool search --name --onlyvisible '{x}' windowactivate --sync key --window %@ space")
+            print(ret)
 
-    def pause_all():
-        for app in media_windows.split(sep="|"):
-            pause_cmd = f"xdotool search --name --onlyvisible '{app}' "
-
-            ret = run_(pause_cmd + mouse_move_cmd)
-            if line := ret.stderr.decode():
-                print(line)
-
-    pause_all()
+    pause()
 
     fnames = [f"{vids_dir}/" + fname for fname in os.listdir(vids_dir)]
 
@@ -59,15 +50,13 @@ def play(vids_dir):
         ret = run_(mpv_cmd)
         print(ret)
 
-    sleep(0.3)
-    pause_all()
-    run_("xdotool keydown alt+Tab keyup alt+Tab")
+    pause()
+    #ret = run_("xdotool keydown alt+Tab keyup alt+Tab")
 
     for file in fnames:
         # ret = run_(f"rm '{file}'")
         ret = run_(f"rm '{file}'")
         print(ret)
-
 
 VIDS_DIR = "/tmp/.vids"
 
