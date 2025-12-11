@@ -43,7 +43,7 @@ def play(vids_dir):
             + "--loop=no "
             + "--start=0% "
             + "--screen=1 "
-            + f"'{fn}'"
+            + f'"{fn}"'
         )
 
         #run_(mpv_cmd)
@@ -55,7 +55,7 @@ def play(vids_dir):
 
     for file in fnames:
         # ret = run_(f"rm '{file}'")
-        ret = run_(f"rm '{file}'")
+        ret = run_(f'rm "{file}"')
         print(ret)
 
 VIDS_DIR = "/tmp/.vids"

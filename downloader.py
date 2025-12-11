@@ -19,7 +19,7 @@ def download(dldir, vidsdir):
 
 
         print('foobar')
-        full_path = f"{dldir}/{filename}"
+        full_path = os.path.join(dldir,filename)
 
         with open(full_path, "r", encoding="UTF-8") as f:
             url = f.readline().strip().split(sep="\n")
